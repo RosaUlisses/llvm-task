@@ -22,3 +22,5 @@ add_definitions(${LLVM_DEFINITIONS})
 add_llvm_pass_plugin(MyPasses
   MyPasses.cpp
 )
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
