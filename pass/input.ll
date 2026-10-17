@@ -1,15 +1,18 @@
-define i32 @example(i32 %x, i32 %y) {
+define i32 @example(i32 %x, i32 %y, ptr %p) {
 entry:
-  %a = mul i32 %x, %y
-  %k = mul i32 100, 100
-  %cond = icmp ne i32 %x, 0
-  br i1 %cond, label %then, label %else
+  %m1 = mul i32 %x, %y
+  %cond = icmp eq i32 %x, %y
+  br i1 %cond, label %equal, label %not_equal
 
-then:
-  %c = add i32 %x, %y
-  ret i32 %c
+equal:
+  %a1 = add i32 %x, %y
+  %a2 = add i32 %x, %y
+  store i32 %a2, ptr %p
+  ret i32 1
 
-else:
-  ret i32 %a
+not_equal:
+  %res = load i32, ptr %p
+  %s1 = sub i32 %x, %y
+  ret i32 %res
 }
 
