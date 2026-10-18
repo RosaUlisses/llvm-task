@@ -106,13 +106,20 @@ private:
   llvm::DenseSet<llvm::Value*> memory_adresses;
 };
 
-class MyPass : public llvm::detail::PassInfoMixin<MyPass> {
+class DeadCodeElimination : public llvm::detail::PassInfoMixin<DeadCodeElimination> {
 public:
   static bool isRequired() { return true; }
 
   bool is_arithmetic_instruction(llvm::Instruction &instruction) {
     return (instruction.isBinaryOp() && !instruction.mayReadOrWriteMemory()) || 
     (llvm::isa<llvm::ICmpInst>(instruction));
+  }
+
+  bool removable_instruction(llvm::Instruction &instruction) {
+
+    //TODO: add compare instruction here
+    return is_arithmetic_instruction(instruction) || 
+           llvm::isa<llvm::LoadInst>(instruction);
   }
 
   void process_arithmetic_instruction(llvm::Instruction &instruction, DependenceGraph &graph) {
@@ -170,6 +177,8 @@ public:
           graph.add_edge(store_instruction->getPointerOperand(), condition);
         }
 
+        // TODO: add compare instruction here 
+
         else if(auto* return_instruction = llvm::dyn_cast<llvm::ReturnInst>(&jumping_block_instruction)) {
           graph.add_edge(return_instruction, condition);
         }
@@ -219,6 +228,8 @@ public:
     std::vector<llvm::Instruction*> dead_instructions;
 
     for(llvm::Instruction &instruction : llvm::instructions(function)) {
+      if(!removable_instruction(instruction)) continue;
+
       if(is_arithmetic_instruction(instruction)) {
         if(!sideffectful_values.contains(&instruction)) dead_instructions.push_back(&instruction);
       }
@@ -252,9 +263,8 @@ public:
     }
   }
   
-  PreservedAnalyses run(Function &F, FunctionAnalysisManager & manager) {
-    //errs() << "MyPass executado na funcao: " << F.getName() << "\n";
-    apply_dead_code_elimination(F);
+  PreservedAnalyses run(llvm::Function &function, llvm::FunctionAnalysisManager &manager) {
+    apply_dead_code_elimination(function);
 
     return PreservedAnalyses::all();
   }
@@ -265,16 +275,16 @@ extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo
 llvmGetPassPluginInfo() {
   return {
       LLVM_PLUGIN_API_VERSION,
-      "MyPasses",
+      "DeadCodeElimination",
       LLVM_VERSION_STRING,
       [](PassBuilder &PB) {
         PB.registerPipelineParsingCallback(
             [](StringRef Name, FunctionPassManager &FPM,
                ArrayRef<PassBuilder::PipelineElement>) {
-              if (Name != "my-pass")
+              if (Name != "dead-code-elimination")
                 return false;
 
-              FPM.addPass(MyPass());
+              FPM.addPass(DeadCodeElimination());
               return true;
             });
       }};

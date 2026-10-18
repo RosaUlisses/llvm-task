@@ -19,8 +19,8 @@ include_directories(SYSTEM
 
 add_definitions(${LLVM_DEFINITIONS})
 
-add_llvm_pass_plugin(MyPasses
-  MyPasses.cpp
+add_llvm_pass_plugin(DeadCodeElimination
+  DeadCodeElimination.cpp
 )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
